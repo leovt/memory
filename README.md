@@ -24,7 +24,7 @@ Model Entities and Actions
 
 *  GET /game
  
-   Show a page for starting a new game
+   Show a page for starting a new game (newgame.html)
 
 *  POST /game (name=string)
 
@@ -34,13 +34,10 @@ Model Entities and Actions
 *  GET /game/[id]
 
    show the current state of game [id]
-   if the second player has not joined yet, show a link to /game/[id]/join for the second player to join
-
-
-*  GET /game/[id]/join
-
-   show a page to join an existing game
-   if the user (identified by a cookie) is already part of the game then send him back to /game/[id]
+   - if the second player has not joined yet, show a link to /game/[id]/join for the second player to join (wait.html)
+   - if the game is started use main game page (game.html)
+   - if the user has no player cookie and the game has not started, offer him to join the game
+   - if the user has no player cookie but the game has started, refuse with 404 or redirect
 
 
 *  POST /game/[id]/join (name=string)
