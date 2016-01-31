@@ -1,7 +1,8 @@
 <p>Welcome to the Memory game</p>
 <form method="post">
 {% csrf_token %}
-<label for="name">Your name or nickname</label><input type="text" id="name"/>
+<label for="name">Your name or nickname</label><input type="text" name="name"/>
 <input type="submit" value="Start a new game"/> 
 </form>
+<p>{{ error }}</p>
 <p>If you want to join an existing game please ask the link from the other player.</p>
