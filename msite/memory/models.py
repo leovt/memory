@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.urlresolvers import reverse
 import random
 
 def random_id(length):
@@ -52,6 +53,8 @@ class Game(models.Model):
         self.save()
         self.cards.set((Card(image=image) for image in images), bulk=False)
 
+    def get_absolute_url(self):
+        return reverse('memory:game', args=[self.urlid])
 
 class Player(models.Model):
     secretid = models.CharField(max_length=10, unique=True, default=_default_secretid)
