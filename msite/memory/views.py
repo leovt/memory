@@ -5,18 +5,61 @@ from django.core.urlresolvers import reverse
 
 from .models import Game, Player
 
-def game(request, urlid):
-    game = get_object_or_404(Game, urlid=urlid)
+class GameView(View):
 
-    player_id = request.COOKIES.get('player_id', '')
-    try:
-        player = game.players.get(secretid=player_id)
-    except Player.DoesNotExist:
-        player = None
+    def get(self, request, urlid):
+        game = get_object_or_404(Game, urlid=urlid)
 
+        player_id = request.COOKIES.get('player_id', '')
+        try:
+            player = Player.objects.get(secretid=player_id)
+        except Player.DoesNotExist:
+            player = None
 
-    return render(request, 'memory/game.html', {
-        'game': game, 'player':player})
+        if game.status == Game.STATUS_WAIT_FOR_PLAYERS:
+            if player and player.game == game:
+                return render(request, 'memory/wait.html', {
+                    'game': game, 'player':player})
+            else:
+                return render(request, 'memory/join.html', {
+                    'game': game, 'player':player})
+
+        return render(request, 'memory/game.html', {
+            'game': game, 'player':player})
+
+    def post(self, request, urlid):
+        game = get_object_or_404(Game, urlid=urlid)
+
+        player_id = request.COOKIES.get('player_id', '')
+        try:
+            player = Player.objects.get(secretid=player_id)
+        except Player.DoesNotExist:
+            player = None
+
+        if game.status == Game.STATUS_WAIT_FOR_PLAYERS:
+            if player and player.game == game:
+                return HttpResponseRedirect(game.get_absolute_url())
+
+            name = request.POST.get("name", "")
+
+            if not name:
+                return render(request, 'memory/join.html', {'error': 'please enter a name', 'game':game})
+
+            player = Player(name=name)
+
+            player = Player(game=game, name=name)
+            player.save()
+
+            game.new_game()
+            game.save()
+
+            assert game.players.count() == 2, 'expected exactly two players'
+
+            response = HttpResponseRedirect(game.get_absolute_url())
+            response.set_cookie('player_id', player.secretid, path=game.get_absolute_url())
+            return response
+        return HttpResponseRedirect(game.get_absolute_url())
+
 
 class Welcome(View):
     def post(self, request):

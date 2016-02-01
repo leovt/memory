@@ -2,3 +2,10 @@
 {% if player %}
 <p>You are {{ player }}.</p>
 {% endif %}
+
+<form method='post'>
+{% csrf_token %}
+{% for card in game.cards.all %}
+<input type="submit" name="card" value="{{ card.id }}"/> 
+{% endfor %}
+</form>

@@ -1,5 +1,7 @@
-<p>Welcome to the Memory game you can join {{ name }}</p>
+<p>Welcome to the Memory game</p>
 <form method="post">
-<label for="name">Your name or nickname</label><input type="text" id="name"/>
+{% csrf_token %}
+<label for="name">Your name or nickname</label><input type="text" name="name"/>
 <input type="submit" value="Join the game"/> 
 </form>
+<p>{{ error }}</p>
