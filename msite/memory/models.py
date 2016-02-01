@@ -50,6 +50,7 @@ class Game(models.Model):
         """
         images = 2 * random.sample(list(Image.objects.all()), Game.NUMBER_OF_PAIRS)
         random.shuffle(images)
+        self.status = Game.STATUS_NO_CARD_SHOWN
         self.save()
         self.cards.set((Card(image=image) for image in images), bulk=False)
 
@@ -86,3 +87,5 @@ class Card(models.Model):
     image = models.ForeignKey(Image, on_delete=models.PROTECT, related_name='+')
     """the image on the front of the card"""
     
+    shown = models.BooleanField(default=False)
+
