@@ -128,6 +128,12 @@ class Player(models.Model):
     
 class Image(models.Model):
     """represent an image which appears on the front of the card"""
+    offset_x = models.IntegerField()
+    """the offset of the image in the image map"""
+
+    offset_y = models.IntegerField()
+    """the offset of the image in the image map"""
+
     def __str__(self):
         return 'Image%d' % self.id
 

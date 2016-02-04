@@ -1,3 +1,4 @@
+{% load staticfiles %}
 <p>This is game {{ game }}.</p>
 {% if player %}
 <p>You are {{ player }}.</p>
@@ -9,9 +10,7 @@
 <form method='post'>
 {% csrf_token %}
 {% for card in game.cards.all %}
-<input type="submit" name="card" value="{{ card.id }}"/> 
-{% if card.shown %}
-{{ card.image }}
-{% endif %}
+<input type="submit" name="card" value="{{ card.id }}" style="line-height:0; color:transparent; width: 140px; height: 140px; background: url({% static 'memory/cards_alphabet.png' %}){% if card.shown %}
+-{{ card.image.offset_x }}px -{{ card.image.offset_y }}px{% endif %}"/> 
 {% endfor %}
 </form>
