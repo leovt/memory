@@ -1,9 +1,9 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.views.generic import View
 from django.core.urlresolvers import reverse
 
-from .models import Game, Player
+from .models import Game, Player, Card
 
 class GameView(View):
 
@@ -58,6 +58,22 @@ class GameView(View):
             response = HttpResponseRedirect(game.get_absolute_url())
             response.set_cookie('player_id', player.secretid, path=game.get_absolute_url())
             return response
+
+        elif game.status == Game.STATUS_GAME_ENDED:
+            game.new_game()
+            game.save()
+            return HttpResponseRedirect(game.get_absolute_url())
+
+        elif game.current_player == player:
+            card_id = request.POST.get("card", "")
+            try:
+                card = game.cards.get(id=card_id)
+            except Card.DoesNotExist:
+                return HttpResponseForbidden()
+            game.show_card(card)
+        else:
+            return HttpResponseForbidden("it's not your turn")
+            
         return HttpResponseRedirect(game.get_absolute_url())
 
 

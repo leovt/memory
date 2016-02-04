@@ -23,11 +23,15 @@ class Game(models.Model):
     STATUS_WAIT_FOR_PLAYERS = 0
     STATUS_NO_CARD_SHOWN = 1
     STATUS_ONE_CARD_SHOWN = 2
-    STATUS_GAME_ENDED = 3
+    STATUS_TWO_DIFFERENT_CARDS_SHOWN = 3
+    STATUS_TWO_IDENTICAL_CARDS_SHOWN = 4
+    STATUS_GAME_ENDED = 5
     STATUS_CHOICES = (
         (STATUS_WAIT_FOR_PLAYERS, 'wait for players'),
         (STATUS_NO_CARD_SHOWN, 'no card shown'),
-        (STATUS_ONE_CARD_SHOWN, 'one_card_shown'),
+        (STATUS_ONE_CARD_SHOWN, 'one card shown'),
+        (STATUS_TWO_DIFFERENT_CARDS_SHOWN, 'two different cards shown'),
+        (STATUS_TWO_IDENTICAL_CARDS_SHOWN, 'two identical cards shown'),
         (STATUS_GAME_ENDED, 'game ended'))
     NUMBER_OF_PAIRS = 18
     
@@ -37,7 +41,7 @@ class Game(models.Model):
     status = models.IntegerField(choices=STATUS_CHOICES, default=STATUS_WAIT_FOR_PLAYERS)
     """the status of the game"""
 
-    current_player = models.ForeignKey('Player', on_delete=models.PROTECT, related_name='+', null=True, blank=True)
+    current_player = models.ForeignKey('Player', on_delete=models.SET_NULL, related_name='+', null=True, blank=True)
     """the current player, i.e. the player who is currently allowed to perform actions"""
 
     def __str__(self):
@@ -51,8 +55,57 @@ class Game(models.Model):
         images = 2 * random.sample(list(Image.objects.all()), Game.NUMBER_OF_PAIRS)
         random.shuffle(images)
         self.status = Game.STATUS_NO_CARD_SHOWN
+        self.current_player = random.choice(self.players.all())
         self.save()
         self.cards.set((Card(image=image) for image in images), bulk=False)
+
+    def show_card(self, card):
+        assert card.game == self
+        if self.status == Game.STATUS_NO_CARD_SHOWN:
+            assert not card.shown
+            card.shown = True
+            self.status = Game.STATUS_ONE_CARD_SHOWN
+            self.save()
+            card.save()
+        elif self.status == Game.STATUS_ONE_CARD_SHOWN:
+            first_card = self.cards.get(shown=True)
+            assert not card.shown
+            assert not first_card == card
+            card.shown = True
+            if card.image == first_card.image:
+                self.current_player.score += 1
+                self.current_player.save()
+                self.status = Game.STATUS_TWO_IDENTICAL_CARDS_SHOWN
+            else:
+                self.status = Game.STATUS_TWO_DIFFERENT_CARDS_SHOWN
+                self.current_player = self.players.exclude(id=self.current_player.id).get()
+            self.save()
+            card.save()
+        elif self.status == Game.STATUS_TWO_DIFFERENT_CARDS_SHOWN:
+            self.cards.update(shown=False)
+            assert not card.shown
+            card.shown = True
+            self.status = Game.STATUS_ONE_CARD_SHOWN
+            self.save()
+            card.save()
+        elif self.status == Game.STATUS_TWO_IDENTICAL_CARDS_SHOWN:
+            self.cards.filter(shown=True).delete()
+            if self.cards.count() > 0:
+                if not card.shown:
+                    card.shown = True
+                    self.status = Game.STATUS_ONE_CARD_SHOWN
+                    self.save()
+                    card.save()
+                else:
+                    self.status = Game.STATUS_NO_CARD_SHOWN
+            else:
+                self.status = Game.STATUS_GAME_ENDED
+        else:
+            assert False, 'illegal game status for show_card()'
+
+
+
+
 
     def get_absolute_url(self):
         return reverse('memory:game', args=[self.urlid])

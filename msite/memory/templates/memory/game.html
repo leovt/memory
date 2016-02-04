@@ -2,10 +2,16 @@
 {% if player %}
 <p>You are {{ player }}.</p>
 {% endif %}
+{% if game.current_player %}
+<p>It is {{game.current_player}}'s turn.</p>
+{% endif %}
 
 <form method='post'>
 {% csrf_token %}
 {% for card in game.cards.all %}
 <input type="submit" name="card" value="{{ card.id }}"/> 
+{% if card.shown %}
+{{ card.image }}
+{% endif %}
 {% endfor %}
 </form>
