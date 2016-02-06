@@ -24,8 +24,10 @@ class GameView(View):
                 return render(request, 'memory/join.html', {
                     'game': game, 'player':player})
 
-        return render(request, 'memory/game.html', {
+        response = render(request, 'memory/game.html', {
             'game': game, 'player':player})
+        response.setdefault('refresh', '2')
+        return response
 
     def post(self, request, urlid):
         game = get_object_or_404(Game, urlid=urlid)
@@ -62,7 +64,6 @@ class GameView(View):
         elif game.status == Game.STATUS_GAME_ENDED:
             game.new_game()
             game.save()
-            return HttpResponseRedirect(game.get_absolute_url())
 
         elif game.current_player == player:
             card_id = request.POST.get("card", "")
@@ -71,8 +72,6 @@ class GameView(View):
             except Card.DoesNotExist:
                 return HttpResponseForbidden()
             game.show_card(card)
-        else:
-            return HttpResponseForbidden("it's not your turn")
             
         return HttpResponseRedirect(game.get_absolute_url())
 
