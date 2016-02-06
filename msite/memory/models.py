@@ -33,7 +33,7 @@ class Game(models.Model):
         (STATUS_TWO_DIFFERENT_CARDS_SHOWN, 'two different cards shown'),
         (STATUS_TWO_IDENTICAL_CARDS_SHOWN, 'two identical cards shown'),
         (STATUS_GAME_ENDED, 'game ended'))
-    NUMBER_OF_PAIRS = 18
+    NUMBER_OF_PAIRS = 12
     
     urlid = models.CharField(max_length=10, unique=True, default=_default_urlid)
     """the id of the game used in urls, should be only known to the players"""
@@ -55,23 +55,25 @@ class Game(models.Model):
         images = 2 * random.sample(list(Image.objects.all()), Game.NUMBER_OF_PAIRS)
         random.shuffle(images)
         self.status = Game.STATUS_NO_CARD_SHOWN
+        self.players.update(score=0)
         self.current_player = random.choice(self.players.all())
         self.save()
+        self.cards.all().delete()
         self.cards.set((Card(image=image) for image in images), bulk=False)
 
     def show_card(self, card):
         assert card.game == self
         if self.status == Game.STATUS_NO_CARD_SHOWN:
-            assert not card.shown
-            card.shown = True
+            assert card.status == Card.STATUS_BACKSIDE
+            card.show()
             self.status = Game.STATUS_ONE_CARD_SHOWN
             self.save()
             card.save()
         elif self.status == Game.STATUS_ONE_CARD_SHOWN:
-            first_card = self.cards.get(shown=True)
-            assert not card.shown
+            first_card = self.cards.get(status=Card.STATUS_FRONTSIDE)
+            assert card.status == Card.STATUS_BACKSIDE
             assert not first_card == card
-            card.shown = True
+            card.show()
             if card.image == first_card.image:
                 self.current_player.score += 1
                 self.current_player.save()
@@ -82,29 +84,37 @@ class Game(models.Model):
             self.save()
             card.save()
         elif self.status == Game.STATUS_TWO_DIFFERENT_CARDS_SHOWN:
-            self.cards.update(shown=False)
-            assert not card.shown
-            card.shown = True
+            self.cards.filter(status=Card.STATUS_FRONTSIDE).update(status=Card.STATUS_BACKSIDE)
+            card.show()
             self.status = Game.STATUS_ONE_CARD_SHOWN
             self.save()
             card.save()
         elif self.status == Game.STATUS_TWO_IDENTICAL_CARDS_SHOWN:
-            self.cards.filter(shown=True).delete()
-            if self.cards.count() > 0:
-                if not card.shown:
-                    card.shown = True
+            self.cards.filter(status=Card.STATUS_FRONTSIDE).update(status=Card.STATUS_REMOVED)
+            if self.cards.filter(status=Card.STATUS_BACKSIDE).count() > 0:
+                if card.status == Card.STATUS_BACKSIDE:
+                    card.show()
                     self.status = Game.STATUS_ONE_CARD_SHOWN
                     self.save()
                     card.save()
                 else:
                     self.status = Game.STATUS_NO_CARD_SHOWN
             else:
+                self.cards.update(status=Card.STATUS_FRONTSIDE)
                 self.status = Game.STATUS_GAME_ENDED
+                self.save()
         else:
             assert False, 'illegal game status for show_card()'
 
 
-
+    def result(self):
+        if self.status == Game.STATUS_GAME_ENDED:
+            highscore = max(player.score for player in self.players.all())
+            winners = self.players.filter(score=highscore)
+            if winners.count() > 1:
+                return 'The match ended in a tie.'
+            else:
+                return '%s has won' % winners.get()
 
 
     def get_absolute_url(self):
@@ -126,6 +136,9 @@ class Player(models.Model):
     def __str__(self):
         return self.name
     
+    def is_current_player(self):
+        return self.game.current_player == self
+
 class Image(models.Model):
     """represent an image which appears on the front of the card"""
     offset_x = models.IntegerField()
@@ -139,6 +152,14 @@ class Image(models.Model):
 
 class Card(models.Model):
     """represent a card in a game"""
+    STATUS_BACKSIDE = 0
+    STATUS_FRONTSIDE = 1
+    STATUS_REMOVED = 2
+    STATUS_CHOICES = (
+        (STATUS_BACKSIDE, 'backside'),
+        (STATUS_FRONTSIDE, 'frontside'),
+        (STATUS_REMOVED, 'removed'))
+
 
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='cards')
     """the game in which this card is used"""
@@ -146,5 +167,19 @@ class Card(models.Model):
     image = models.ForeignKey(Image, on_delete=models.PROTECT, related_name='+')
     """the image on the front of the card"""
     
-    shown = models.BooleanField(default=False)
+    status = models.IntegerField(choices=STATUS_CHOICES, default=STATUS_BACKSIDE)
+
+    def show(self):
+        if self.status == Card.STATUS_BACKSIDE:
+            self.status = Card.STATUS_FRONTSIDE
+
+    def hide(self):
+        if self.status == Card.STATUS_FRONTSIDE:
+            self.status = Card.STATUS_BACKSIDE
+
+    def visible(self):
+        return self.status in (Card.STATUS_FRONTSIDE, Card.STATUS_BACKSIDE)
+
+    def shown(self):
+        return self.status == Card.STATUS_FRONTSIDE
 
