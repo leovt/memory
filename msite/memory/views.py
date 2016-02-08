@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponseRedirect, HttpResponseForbidden
+from django.http import HttpResponseRedirect, HttpResponseForbidden, JsonResponse
 from django.views.generic import View
 from django.core.urlresolvers import reverse
 
@@ -8,6 +8,28 @@ from .models import Game, Player, Card
 class GameView(View):
 
     def get(self, request, urlid):
+        accept = request.META.get('HTTP_ACCEPT')
+        if 'json' in accept:
+            return self.get_json(request, urlid)
+        return self.get_html(request, urlid)
+
+    def get_json(self, request, urlid):
+        game = get_object_or_404(Game, urlid=urlid)
+        return JsonResponse({
+            'status': game.get_status_display(),
+            'players': {'player%d' % p.id:
+                {'name': p.name,
+                 'score': p.score,
+                 'is_current_player': p.is_current_player()}
+                for p in game.players.all()},
+            'cards': {'card%d' % c.id:{
+                 'visible': c.visible(),
+                 'bgpos': (('-%dpx -%dpx' % (c.image.offset_x, c.image.offset_y))
+                           if c.status == Card.STATUS_FRONTSIDE else '')}
+                for c in game.cards.all()}
+        })
+
+    def get_html(self, request, urlid):
         game = get_object_or_404(Game, urlid=urlid)
 
         player_id = request.COOKIES.get('player_id', '')
@@ -26,7 +48,7 @@ class GameView(View):
 
         response = render(request, 'memory/game.html', {
             'game': game, 'player':player})
-        response.setdefault('refresh', '2')
+        # response.setdefault('refresh', '2')
         return response
 
     def post(self, request, urlid):
@@ -83,8 +105,6 @@ class Welcome(View):
 
         if not name:
             return render(request, 'memory/newgame.html', {'error': 'please enter a name'})
-
-        player = Player(name=name)
 
         game = Game()
         game.save()

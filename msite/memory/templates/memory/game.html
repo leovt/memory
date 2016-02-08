@@ -15,14 +15,15 @@
 	height: 150px; 
 }
 </style>
+<script src="{% static 'memory/game.js' %}"></script>
 </head>
-<body>
+<body onload="sendRequest()">
 <p>This is game {{ game }}.</p>
 
 <table>
 <tr>
 {% for aplayer in game.players.all %}
-<td id="{{ aplayer.id }}" {% if aplayer.is_current_player %}style="background: yellow"{% endif %}>{{ aplayer.name }} - {{ aplayer.score }}</td>
+<td id="player{{ aplayer.id }}" {% if aplayer.is_current_player %}style="background: yellow"{% endif %}>{{ aplayer.name }} - {{ aplayer.score }}</td>
 {% endfor %}
 </tr>
 </table>
@@ -46,12 +47,12 @@
     {% if forloop.counter0|divisibleby:6 %}<tr>{% endif %}
 	<td class="cardcell">
 	{% if card.shown %}
-		<input type="submit" name="card" value="{{ card.id }}" class="card"
+		<input type="submit" name="card" value="{{ card.id }}" class="card" id="card{{card.id}}"
 		style="background-position: -{{ card.image.offset_x }}px -{{ card.image.offset_y }}px"/>
 	{% elif card.visible %}
-		<input type="submit" name="card" value="{{ card.id }}" class="card"/>
+		<input type="submit" name="card" value="{{ card.id }}" class="card" id="card{{card.id}}"/>
 	{% else %}
-		&nbsp;
+		<input type="submit" name="card" value="{{ card.id }}" class="card" id="card{{card.id}}" style="visibility: hidden"/>
 	{% endif %}
 	</td>
     {% if forloop.counter|divisibleby:6 %}</tr>{% endif %}
