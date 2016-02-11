@@ -17,7 +17,7 @@
 </style>
 <script src="{% static 'memory/game.js' %}"></script>
 </head>
-<body onload="sendRequest()">
+<body onload="main()">
 <p>This is game {{ game }}.</p>
 
 <table>
@@ -35,7 +35,7 @@
 <p>It is {{game.current_player}}'s turn.</p>
 {% endif %}
 
-<form method='post'>
+<form method='post' id="game-form">
 {% csrf_token %}
 {% if game.result %}
 <p> {{ game.result }} </p>
