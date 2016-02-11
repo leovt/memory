@@ -35,13 +35,16 @@ function sendRequest() {
 }
 
 function clickCard(e) {
-	e.preventDefault();/*
+	var form = document.getElementById("game-form");
+	e.preventDefault();
+	var params = "card="+this.value+"&csrfmiddlewaretoken="+form.elements.csrfmiddlewaretoken.value;
 	var oReq = new XMLHttpRequest();
 	oReq.addEventListener("load", reqListener);
 	oReq.open("POST", "#");
 	oReq.setRequestHeader("Accept","application/json");
-	oReq.send();*/
-	console.log(this.value)
+	oReq.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	oReq.setRequestHeader("Content-length", params.length);
+	oReq.send(params);
 	return false;
 }
 
