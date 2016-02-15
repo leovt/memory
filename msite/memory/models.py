@@ -44,6 +44,8 @@ class Game(models.Model):
     current_player = models.ForeignKey('Player', on_delete=models.SET_NULL, related_name='+', null=True, blank=True)
     """the current player, i.e. the player who is currently allowed to perform actions"""
 
+    last_modified = models.DateTimeField(auto_now=True)
+
     def __str__(self):
         return self.urlid
     
