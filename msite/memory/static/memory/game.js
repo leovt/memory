@@ -1,37 +1,59 @@
 function reqListener () {
-  console.log(this.responseText);
-  response = JSON.parse(this.responseText) 
-  console.log(response);
-  for (playerID in response.players){
-	  player = response.players[playerID]
-	  element = document.getElementById(playerID)
-	  if (player.is_current_player){
-		  element.style.backgroundColor = "red";
-	  }
-	  else{
-		  element.style.backgroundColor = null;
-	  }
-	  element.textContent = player.name + ": " + player.score 
-  }
-  for (cardID in response.cards) {
-	  card = response.cards[cardID]
-	  element = document.getElementById(cardID)
-	  element.style.backgroundPosition = card.bgpos
-	  if (card.visible){
-		  element.style.visibility = "visible";
-	  }
-	  else{
-		  element.style.visibility = "hidden";
-	  }
-  }
+	/* no need to update game state with a 304 response */
+	if (this.status == 304) return;
+	
+	/* the browser might return a cached 200 response even if 
+	 * the server sent a 304. 
+	 * if the last modified date has not changed there is no need for
+	 * updating the game ui
+	 */
+	var lm = this.getResponseHeader("Last-Modified");
+	if (lm == window.game_lm) return;
+  
+	window.game_lm = lm
+	response = JSON.parse(this.responseText) 
+	console.log(response);
+	var current_player = null;
+	for (playerID in response.players){
+		player = response.players[playerID]
+		element = document.getElementById(playerID)
+		if (player.is_current_player){
+			current_player = player.name;
+			element.style.backgroundColor = "red";
+		}	
+		else{
+			element.style.backgroundColor = null;
+		}
+		element.textContent = player.name + ": " + player.score 
+	}
+	for (cardID in response.cards) {
+		card = response.cards[cardID]
+		element = document.getElementById(cardID)
+		element.style.backgroundPosition = card.bgpos
+		if (card.visible){
+			element.style.visibility = "visible";
+		}	
+		else{
+			element.style.visibility = "hidden";
+		}
+	}
+	if(current_player){
+		element = document.getElementById("status")
+		element.textContent = "it is " + current_player + "'s turn";
+	}
+	
 }
 
 function sendRequest() {
 	var oReq = new XMLHttpRequest();
 	oReq.addEventListener("load", reqListener);
-	oReq.open("GET", "#");
+	oReq.open("GET", "json");
 	oReq.setRequestHeader("Accept","application/json");
+	if (window.game_lm){
+	  oReq.setRequestHeader("If-Modified-Since", window.game_lm);
+	}
 	oReq.send();
+    setTimeout(sendRequest, 2000);
 }
 
 function clickCard(e) {
@@ -50,6 +72,7 @@ function clickCard(e) {
 
 function main(){
 	var form = document.getElementById("game-form")
+	window.game_lm = document.last_modified;
 	form.onsubmit = function(e){e.preventDefault(); return false};
 	for (name in form.elements) {
 		var element = form.elements[name];
@@ -57,5 +80,5 @@ function main(){
 			element.onclick = clickCard;
 		}
 	} 
-	
+    setTimeout(sendRequest, 2000);	
 }

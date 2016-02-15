@@ -31,9 +31,10 @@
 {% if player %}
 <p>You are {{ player }}.</p>
 {% endif %}
-{% if game.current_player %}
-<p>It is {{game.current_player}}'s turn.</p>
+<p id="status">{% if game.current_player %}
+It is {{game.current_player}}'s turn.
 {% endif %}
+</p>
 
 <form method='post' id="game-form">
 {% csrf_token %}
