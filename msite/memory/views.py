@@ -2,18 +2,20 @@ from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponseRedirect, HttpResponseForbidden, JsonResponse
 from django.views.generic import View
 from django.core.urlresolvers import reverse
-
+from django.views.decorators.http import last_modified
+from django.utils.decorators import classonlymethod
 from .models import Game, Player, Card
 
-class GameView(View):
+
+class GameViewJSON(View):
+    @classonlymethod
+    def as_conditional_view(cls, *args, **kwargs):
+        def last_modified_func(request, urlid):
+            game = get_object_or_404(Game, urlid=urlid)
+            return game.last_modified
+        return last_modified(last_modified_func)(cls.as_view(*args, **kwargs))
 
     def get(self, request, urlid):
-        accept = request.META.get('HTTP_ACCEPT')
-        if 'json' in accept:
-            return self.get_json(request, urlid)
-        return self.get_html(request, urlid)
-
-    def get_json(self, request, urlid):
         game = get_object_or_404(Game, urlid=urlid)
         return JsonResponse({
             'status': game.get_status_display(),
@@ -28,6 +30,13 @@ class GameView(View):
                            if c.status == Card.STATUS_FRONTSIDE else '')}
                 for c in game.cards.all()}
         })
+
+class GameView(View):
+    def get(self, request, urlid):
+        accept = request.META.get('HTTP_ACCEPT')
+        if 'json' in accept:
+            return HttpResponseRedirect(reverse('memory:game_json', args=(urlid,)))
+        return self.get_html(request, urlid)
 
     def get_html(self, request, urlid):
         game = get_object_or_404(Game, urlid=urlid)
@@ -95,6 +104,9 @@ class GameView(View):
                 return HttpResponseForbidden()
             game.show_card(card)
             
+        accept = request.META.get('HTTP_ACCEPT')
+        if 'json' in accept:
+            return HttpResponseRedirect(reverse('memory:game_json', args=(urlid,)))
         return HttpResponseRedirect(game.get_absolute_url())
 
 
