@@ -41,7 +41,17 @@ function reqListener () {
 		element = document.getElementById("status")
 		element.textContent = "it is " + current_player + "'s turn";
 	}
-	
+	if(response.player){
+		window.can_act = response.player.can_act
+		window.should_refresh = response.player.should_refresh
+	}
+}
+
+function refreshCallback(){
+	if(window.should_refresh){
+		sendRequest();
+	}
+    setTimeout(refreshCallback, 1500);	
 }
 
 function sendRequest() {
@@ -50,10 +60,9 @@ function sendRequest() {
 	oReq.open("GET", "json");
 	oReq.setRequestHeader("Accept","application/json");
 	if (window.game_lm){
-	  oReq.setRequestHeader("If-Modified-Since", window.game_lm);
+		 oReq.setRequestHeader("If-Modified-Since", window.game_lm);
 	}
 	oReq.send();
-    setTimeout(sendRequest, 2000);
 }
 
 function clickCard(e) {
@@ -80,5 +89,6 @@ function main(){
 			element.onclick = clickCard;
 		}
 	} 
-    setTimeout(sendRequest, 2000);	
+	sendRequest();
+    setTimeout(refreshCallback, 2000);
 }

@@ -33,6 +33,8 @@ class Game(models.Model):
         (STATUS_TWO_DIFFERENT_CARDS_SHOWN, 'two different cards shown'),
         (STATUS_TWO_IDENTICAL_CARDS_SHOWN, 'two identical cards shown'),
         (STATUS_GAME_ENDED, 'game ended'))
+    STATUS_IN_GAME = (STATUS_NO_CARD_SHOWN, STATUS_ONE_CARD_SHOWN, STATUS_TWO_DIFFERENT_CARDS_SHOWN, STATUS_TWO_IDENTICAL_CARDS_SHOWN)
+    STATUS_OUT_OF_GAME = (STATUS_WAIT_FOR_PLAYERS, STATUS_GAME_ENDED)
     NUMBER_OF_PAIRS = 12
     
     urlid = models.CharField(max_length=10, unique=True, default=_default_urlid)
@@ -140,6 +142,18 @@ class Player(models.Model):
     
     def is_current_player(self):
         return self.game.current_player == self
+    
+    def should_refresh(self):
+        if self.game.status in Game.STATUS_IN_GAME:
+            return not self.is_current_player()
+        else:
+            return True
+
+    def can_act(self):
+        if self.game.status in Game.STATUS_IN_GAME:
+            return self.is_current_player()
+        else:
+            return True
 
 class Image(models.Model):
     """represent an image which appears on the front of the card"""

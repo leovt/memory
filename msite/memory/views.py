@@ -6,6 +6,16 @@ from django.views.decorators.http import last_modified
 from django.utils.decorators import classonlymethod
 from .models import Game, Player, Card
 
+def get_player(request):
+    """
+    get the player object of the player making the request.
+    the player is identified by a cookie
+    """
+    player_id = request.COOKIES.get('player_id', '')
+    try:
+        return Player.objects.get(secretid=player_id)
+    except Player.DoesNotExist:
+        return None
 
 class GameViewJSON(View):
     @classonlymethod
@@ -17,7 +27,9 @@ class GameViewJSON(View):
 
     def get(self, request, urlid):
         game = get_object_or_404(Game, urlid=urlid)
-        return JsonResponse({
+        player = get_player(request)
+            
+        response = {
             'status': game.get_status_display(),
             'players': {'player%d' % p.id:
                 {'name': p.name,
@@ -29,7 +41,15 @@ class GameViewJSON(View):
                  'bgpos': (('-%dpx -%dpx' % (c.image.offset_x, c.image.offset_y))
                            if c.status == Card.STATUS_FRONTSIDE else '')}
                 for c in game.cards.all()}
-        })
+        }
+        player = get_player(request)
+        if player and player.game == game:
+            response['player'] = {
+                'name': player.name,
+                'can_act': player.can_act(),
+                'should_refresh': player.should_refresh()}
+        
+        return JsonResponse(response)
 
 class GameView(View):
     def get(self, request, urlid):
@@ -41,11 +61,7 @@ class GameView(View):
     def get_html(self, request, urlid):
         game = get_object_or_404(Game, urlid=urlid)
 
-        player_id = request.COOKIES.get('player_id', '')
-        try:
-            player = Player.objects.get(secretid=player_id)
-        except Player.DoesNotExist:
-            player = None
+        player = get_player(request)
 
         if game.status == Game.STATUS_WAIT_FOR_PLAYERS:
             if player and player.game == game:
