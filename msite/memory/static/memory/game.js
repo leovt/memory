@@ -59,7 +59,7 @@ function reqListener () {
 }
 
 function refreshCallback(){
-	if(window.should_refresh){
+	if(window.should_refresh && !document.hidden){
 		sendRequest();
 	}
     setTimeout(refreshCallback, 1500);	
