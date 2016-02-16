@@ -35,7 +35,7 @@ class Game(models.Model):
         (STATUS_GAME_ENDED, 'game ended'))
     STATUS_IN_GAME = (STATUS_NO_CARD_SHOWN, STATUS_ONE_CARD_SHOWN, STATUS_TWO_DIFFERENT_CARDS_SHOWN, STATUS_TWO_IDENTICAL_CARDS_SHOWN)
     STATUS_OUT_OF_GAME = (STATUS_WAIT_FOR_PLAYERS, STATUS_GAME_ENDED)
-    NUMBER_OF_PAIRS = 12
+    NUMBER_OF_PAIRS = 1
     
     urlid = models.CharField(max_length=10, unique=True, default=_default_urlid)
     """the id of the game used in urls, should be only known to the players"""
@@ -111,7 +111,7 @@ class Game(models.Model):
             assert False, 'illegal game status for show_card()'
 
 
-    def result(self):
+    def message(self):
         if self.status == Game.STATUS_GAME_ENDED:
             highscore = max(player.score for player in self.players.all())
             winners = self.players.filter(score=highscore)
@@ -119,7 +119,11 @@ class Game(models.Model):
                 return 'The match ended in a tie.'
             else:
                 return '%s has won' % winners.get()
+        elif self.status in Game.STATUS_IN_GAME:
+            return 'It is %s\'s turn.' % self.current_player
 
+    def has_ended(self):
+        return self.status == Game.STATUS_GAME_ENDED
 
     def get_absolute_url(self):
         return reverse('memory:game', args=[self.urlid])

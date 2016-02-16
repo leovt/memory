@@ -31,18 +31,14 @@
 {% if player %}
 <p>You are {{ player }}.</p>
 {% endif %}
-<p id="status">{% if game.current_player %}
-It is {{game.current_player}}'s turn.
-{% endif %}
-</p>
+<p id="message">{{game.message}}</p>
 
 <form method='post' id="game-form">
 {% csrf_token %}
-{% if game.result %}
-<p> {{ game.result }} </p>
+<div id="ended" {% if not game.has_ended  %} style="visibility: hidden" {% endif %}>
 <p><input type="submit" value="Play again"/></p>
 <p><a href="{% url 'memory:welcome' %}">or start a new game with somebody else.</a></p>
-{% endif %}
+</div>
 <table>
 {% for card in game.cards.all %}
     {% if forloop.counter0|divisibleby:6 %}<tr>{% endif %}

@@ -36,6 +36,7 @@ class GameViewJSON(View):
                  'score': p.score,
                  'is_current_player': p.is_current_player()}
                 for p in game.players.all()},
+            'message': game.message(),
             'cards': {'card%d' % c.id:{
                  'visible': c.visible(),
                  'bgpos': (('-%dpx -%dpx' % (c.image.offset_x, c.image.offset_y))
@@ -114,11 +115,13 @@ class GameView(View):
 
         elif game.current_player == player:
             card_id = request.POST.get("card", "")
-            try:
-                card = game.cards.get(id=card_id)
-            except Card.DoesNotExist:
-                return HttpResponseForbidden()
-            game.show_card(card)
+            if card_id.isdigit():
+                try:
+                    card = game.cards.get(id=card_id)
+                except Card.DoesNotExist:
+                    pass
+                else:
+                    game.show_card(card)
             
         accept = request.META.get('HTTP_ACCEPT')
         if 'json' in accept:

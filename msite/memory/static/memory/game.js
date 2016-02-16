@@ -29,6 +29,13 @@ function reqListener () {
 	for (cardID in response.cards) {
 		card = response.cards[cardID]
 		element = document.getElementById(cardID)
+		if (!element){
+			/* if the card is not found then assume a new match has been started with new cards 
+			 * and therefore reload the page
+			 */
+			location.reload();
+			return;
+		}
 		element.style.backgroundPosition = card.bgpos
 		if (card.visible){
 			element.style.visibility = "visible";
@@ -37,14 +44,18 @@ function reqListener () {
 			element.style.visibility = "hidden";
 		}
 	}
-	if(current_player){
-		element = document.getElementById("status")
-		element.textContent = "it is " + current_player + "'s turn";
-	}
 	if(response.player){
 		window.can_act = response.player.can_act
 		window.should_refresh = response.player.should_refresh
 	}
+	element = document.getElementById("ended")
+	if(response.status == "game ended"){
+		element.style.visibility = "visible";
+	}
+	else{
+		element.style.visibility = "hidden";
+	}
+	document.getElementById("message").textContent = response.message;
 }
 
 function refreshCallback(){
