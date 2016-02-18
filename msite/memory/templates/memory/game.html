@@ -20,6 +20,10 @@
 <body onload="main()">
 <p>This is game {{ game }}.</p>
 
+{% if game.state == 0 %} 
+<p>Please wait for other player</p>
+<p>Send him this link to join: <a href="{{ game.get_absolute_url }}">{{ game.get_absolute_url }}</a></p>
+{% else %}
 <table>
 <tr>
 {% for aplayer in game.players.all %}
@@ -56,5 +60,6 @@
 {% endfor %}
 </table>
 </form>
+{% endif %}
 </body>
 </html>

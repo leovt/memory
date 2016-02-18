@@ -66,8 +66,7 @@ class GameView(View):
 
         if game.status == Game.STATUS_WAIT_FOR_PLAYERS:
             if player and player.game == game:
-                return render(request, 'memory/wait.html', {
-                    'game': game, 'player':player})
+                pass
             else:
                 return render(request, 'memory/join.html', {
                     'game': game, 'player':player})

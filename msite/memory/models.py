@@ -119,6 +119,8 @@ class Game(models.Model):
                 return 'The match ended in a tie.'
             else:
                 return '%s has won' % winners.get()
+        elif self.status == Game.STATUS_WAIT_FOR_PLAYERS:
+            return 'Please wait for the other player'
         elif self.status in Game.STATUS_IN_GAME:
             return 'It is %s\'s turn.' % self.current_player
 

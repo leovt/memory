@@ -17,6 +17,13 @@ function reqListener () {
 	for (playerID in response.players){
 		player = response.players[playerID]
 		element = document.getElementById(playerID)
+		if (!element){
+			/* if the card is not found then assume a new match has been started with new cards 
+			 * and therefore reload the page
+			 */
+			location.reload();
+			return;
+		}
 		if (player.is_current_player){
 			current_player = player.name;
 			element.style.backgroundColor = "red";
